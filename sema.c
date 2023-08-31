@@ -17,6 +17,11 @@
 
 #define SEMA_DEBUG
 
+/**
+ * @brief Print all threads for all priorities and their status
+ *
+ * @param sema
+ */
 void SemaPrintThreadIds(sema_t *sema)
 {
   int i, j;
@@ -38,6 +43,13 @@ void SemaPrintThreadIds(sema_t *sema)
   printf("%s", pstring);
 }
 
+/**
+ * @brief Initalize a semaphore
+ *
+ * @param sema The semaphore to initalize
+ * @param pshared The pthread pshared value
+ * @param value The semaphore value
+ */
 void sema_init(sema_t *sema, int pshared, unsigned int value)
 {
   int i, j;
@@ -62,15 +74,26 @@ void sema_init(sema_t *sema, int pshared, unsigned int value)
   pthread_mutex_unlock(&sema->semLock);
 }
 
+/**
+ * @brief Get the priority and position of the calling thread
+ *
+ * @param sema The priority semaphore
+ * @param priority the returned priority
+ * @param position the position of the thread in this priority
+ * @return int
+ */
 int SemaGetPriority(sema_t *sema, int *priority, int *position)
 {
+  // Iterate through the used threads and find the calling thread
   int i, j;
   for (i = 0; i < SEMA_NUM_PRIORITIES; i++)
   {
     for (j = 0; j < SEMA_NUM_PER_PRIORITY; j++)
     {
+      // Only check initalized (set) threads
       if (sema->waiting_thread_status[i][j])
       {
+        // Did we find the calling thread?
         if (pthread_equal(pthread_self(), sema->waiting_thread[i][j]))
         {
           *priority = i;
@@ -88,6 +111,15 @@ int SemaGetPriority(sema_t *sema, int *priority, int *position)
   return -1;
 }
 
+/**
+ * @brief Internal function the sets the priority and status of a thread
+ *
+ * @param sema
+ * @param waitThread
+ * @param priority
+ * @param status_to_set
+ * @return int
+ */
 int SemaSetPriorityInternal(sema_t *sema, pthread_t waitThread, int priority,
                             int status_to_set)
 {
@@ -96,7 +128,7 @@ int SemaSetPriorityInternal(sema_t *sema, pthread_t waitThread, int priority,
   for (j = 0; j < SEMA_NUM_PER_PRIORITY; j++)
   {
 
-    // Check if priority is set for a dead thread
+    // Check if priority is set for a dead thread, clear it
     if (sema->waiting_thread_status[priority][j] == SEMA_STATUS_PRIOITY_SET)
     {
       if (pthread_kill(sema->waiting_thread[priority][j], 0) == ESRCH)
@@ -125,6 +157,13 @@ int SemaSetPriorityInternal(sema_t *sema, pthread_t waitThread, int priority,
   return -1;
 }
 
+/**
+ * @brief Set the priority of the calling thread
+ *
+ * @param sema The priority semaphore
+ * @param priority The priority to set
+ * @return int
+ */
 int sema_set_priority(sema_t *sema, int priority)
 {
   int priority_a;
@@ -149,8 +188,8 @@ int sema_set_priority(sema_t *sema, int priority)
     }
     else
     {
+      // keep the old status, just change priority, after resetting
       printf("SetPriority: change %d-->%d\n", priority_a, priority);
-      // keep the old status, just change priority
       status_to_set = sema->waiting_thread_status[priority_a][position_a];
       sema->waiting_thread_status[priority_a][position_a] = 0;
       memset(&sema->waiting_thread[priority_a][position_a], 0, sizeof(pthread_t));
@@ -159,6 +198,14 @@ int sema_set_priority(sema_t *sema, int priority)
   }
 }
 
+/**
+ * @brief Find the priority and position of the highest waiting thread
+ * 
+ * @param sema The priority semaphore
+ * @param priority 
+ * @param position 
+ * @return int 
+ */
 int SemaGetPost(sema_t *sema, int *priority, int *position)
 {
   int i, j;
@@ -204,6 +251,11 @@ int SemaUnsetWait(sema_t *sema, int priority, int position)
   return -1;
 }
 
+/**
+ * @brief Perform a wait on the priority semaphore
+ *
+ * @param sema
+ */
 void sema_wait(sema_t *sema)
 {
   int priority;
@@ -257,6 +309,11 @@ void sema_wait(sema_t *sema)
   return;
 }
 
+/**
+ * @brief Perform a post to the priority semaphore
+ *
+ * @param sema
+ */
 void sema_post(sema_t *sema)
 {
   int priority;
