@@ -8,6 +8,7 @@
 #define SEMA_NUM_PER_PRIORITY 5
 #define SEMA_STATUS_PRIOITY_SET 1
 #define SEMA_STATUS_PRIOITY_WAIT 2
+#define SEMA_STATUS_PRIOITY_RELEASED 3
 
 typedef struct sema_list_t {
 
