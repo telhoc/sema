@@ -16,7 +16,7 @@
 
 #include "sema.h"
 
-#define SEMA_DEBUG
+#define noSEMA_DEBUG
 
 void sema_printf(const char *format, ...)
 {
@@ -160,10 +160,13 @@ int SemaSetPriorityInternal(sema_t *sema, pthread_t waitThread, int priority,
       sema_printf("SetPriority %d pos %d for id %lu (check %lu)\n", priority, j,
                   waitThread, sema->waiting_thread[priority][j]);
       SemaPrintThreadIds(sema);
+
+      pthread_mutex_unlock(&sema->semLock);
       return j;
     }
   }
 
+  pthread_mutex_unlock(&sema->semLock);
   return -1;
 }
 
@@ -182,6 +185,7 @@ int sema_set_priority(sema_t *sema, int priority)
 
   status_to_set = SEMA_STATUS_PRIOITY_SET;
 
+  pthread_mutex_lock(&sema->semLock);
   if (SemaGetPriority(sema, &priority_a, &position_a) < 0)
   {
     return SemaSetPriorityInternal(sema, pthread_self(), priority, status_to_set);
@@ -192,6 +196,8 @@ int sema_set_priority(sema_t *sema, int priority)
     {
       sema_printf("SetPriority unchanged at prio %d pos %d \n",
                   priority_a, position_a);
+
+      pthread_mutex_unlock(&sema->semLock);
       return position_a;
     }
     else
@@ -366,7 +372,7 @@ void sema_post(sema_t *sema)
   SemaUnsetWait(sema, priority, position);
 
   SemaPrintThreadIds(sema);
-  printf("sema_post: prepost semval %d numwaiting %d\n", sema->semval, sema->numWaiting);
+  sema_printf("sema_post: prepost semval %d numwaiting %d\n", sema->semval, sema->numWaiting);
 
   sem_post(&sema->priority_sem[priority][position]);
   pthread_mutex_unlock(&sema->semLock);
