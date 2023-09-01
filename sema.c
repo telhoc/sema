@@ -3,11 +3,12 @@
 #include <signal.h>
 #include <string.h>
 #include <errno.h>
+#include <stdarg.h>
+#include <stdio.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <stdio.h>
 #include <wchar.h>
 #include <time.h>
 #include <assert.h>
@@ -17,6 +18,19 @@
 
 #define SEMA_DEBUG
 
+void sema_printf(const char *format, ...)
+{
+#ifdef SEMA_DEBUG
+  char buffer[256];
+
+  va_list args;
+  va_start(args, format);
+  vsprintf(buffer, format, args);
+  printf("%s", buffer);
+  va_end(args);
+#endif
+}
+
 /**
  * @brief Print all threads for all priorities and their status
  *
@@ -24,6 +38,7 @@
  */
 void SemaPrintThreadIds(sema_t *sema)
 {
+#ifdef SEMA_DEBUG
   int i, j;
   char pstring[1024];
   char *p;
@@ -41,6 +56,7 @@ void SemaPrintThreadIds(sema_t *sema)
     p += sprintf(p, "\n");
   }
   printf("%s", pstring);
+#endif
 }
 
 /**
@@ -53,6 +69,8 @@ void SemaPrintThreadIds(sema_t *sema)
 void sema_init(sema_t *sema, int pshared, unsigned int value)
 {
   int i, j;
+
+  sema_printf("Hello there! \n");
 
   for (i = 0; i < SEMA_NUM_PRIORITIES; i++)
   {
@@ -98,11 +116,9 @@ int SemaGetPriority(sema_t *sema, int *priority, int *position)
         {
           *priority = i;
           *position = j;
-#ifdef SEMA_DEBUG
-          printf("Found prio %d pos %d thread %lu %lu cmp %d\n",
-                 i, j, pthread_self(), sema->waiting_thread[i][j],
-                 pthread_equal(pthread_self(), sema->waiting_thread[i][j]));
-#endif
+          sema_printf("Found prio %d pos %d thread %lu %lu cmp %d\n",
+                      i, j, pthread_self(), sema->waiting_thread[i][j],
+                      pthread_equal(pthread_self(), sema->waiting_thread[i][j]));
           return (sema->waiting_thread_status[i][j]);
         }
       }
@@ -133,9 +149,7 @@ int SemaSetPriorityInternal(sema_t *sema, pthread_t waitThread, int priority,
     {
       if (pthread_kill(sema->waiting_thread[priority][j], 0) == ESRCH)
       {
-#ifdef SEMA_DEBUG
-        printf("Old thread %lu is dead, reset\n", sema->waiting_thread[priority][j]);
-#endif
+        sema_printf("Old thread %lu is dead, reset\n", sema->waiting_thread[priority][j]);
         sema->waiting_thread_status[priority][j] = 0;
         memset(&sema->waiting_thread[priority][j], 0, sizeof(pthread_t));
       }
@@ -145,11 +159,9 @@ int SemaSetPriorityInternal(sema_t *sema, pthread_t waitThread, int priority,
     {
       sema->waiting_thread_status[priority][j] = status_to_set;
       memcpy(&sema->waiting_thread[priority][j], &waitThread, sizeof(pthread_t));
-#ifdef SEMA_DEBUG
-      printf("SetPriority %d pos %d for id %lu (check %lu)\n", priority, j,
-             waitThread, sema->waiting_thread[priority][j]);
+      sema_printf("SetPriority %d pos %d for id %lu (check %lu)\n", priority, j,
+                  waitThread, sema->waiting_thread[priority][j]);
       SemaPrintThreadIds(sema);
-#endif
       return j;
     }
   }
@@ -180,10 +192,8 @@ int sema_set_priority(sema_t *sema, int priority)
   {
     if (priority_a == priority)
     {
-#ifdef SEMA_DEBUG
-      printf("SetPriority unchanged at prio %d pos %d \n",
-             priority_a, position_a);
-#endif
+      sema_printf("SetPriority unchanged at prio %d pos %d \n",
+                  priority_a, position_a);
       return position_a;
     }
     else
@@ -200,11 +210,11 @@ int sema_set_priority(sema_t *sema, int priority)
 
 /**
  * @brief Find the priority and position of the highest waiting thread
- * 
+ *
  * @param sema The priority semaphore
- * @param priority 
- * @param position 
- * @return int 
+ * @param priority
+ * @param position
+ * @return int
  */
 int SemaGetPost(sema_t *sema, int *priority, int *position)
 {
@@ -231,11 +241,11 @@ int SemaGetPost(sema_t *sema, int *priority, int *position)
 
 /**
  * @brief Set the status of a specific priority and position to wait
- * 
- * @param sema 
- * @param priority 
- * @param position 
- * @return int 
+ *
+ * @param sema
+ * @param priority
+ * @param position
+ * @return int
  */
 int SemaSetWait(sema_t *sema, int priority, int position)
 {
@@ -250,12 +260,12 @@ int SemaSetWait(sema_t *sema, int priority, int position)
 
 /**
  * @brief Unset the status of a specific priority and position to wait
- * 
- * 
- * @param sema 
- * @param priority 
- * @param position 
- * @return int 
+ *
+ *
+ * @param sema
+ * @param priority
+ * @param position
+ * @return int
  */
 int SemaUnsetWait(sema_t *sema, int priority, int position)
 {
@@ -291,35 +301,35 @@ void sema_wait(sema_t *sema)
   {
     sema->semval--;
     SemaUnsetWait(sema, priority, position);
-#ifdef SEMA_DEBUG
-    printf("sema_wait: semval %d proceed. Numwaiting %d. Status %d\n",
-           sema->semval + 1, sema->numWaiting, sema->waiting_thread_status[priority][position]);
+
+    sema_printf("sema_wait: semval %d proceed. Numwaiting %d. Status %d\n",
+                sema->semval + 1, sema->numWaiting, sema->waiting_thread_status[priority][position]);
     SemaPrintThreadIds(sema);
-#endif
+#
     pthread_mutex_unlock(&sema->semLock);
     return;
   }
   else
   {
     sema->numWaiting++;
-#ifdef SEMA_DEBUG
-    printf("sema_wait: wait semval %d prio %d pos %d numwaiting %d %lu stat %d\n",
-           sema->semval, priority, position,
-           sema->numWaiting, pthread_self(),
-           sema->waiting_thread_status[priority][position]);
+
+    sema_printf("sema_wait: wait semval %d prio %d pos %d numwaiting %d %lu stat %d\n",
+                sema->semval, priority, position,
+                sema->numWaiting, pthread_self(),
+                sema->waiting_thread_status[priority][position]);
     SemaPrintThreadIds(sema);
-#endif
+
     sem_init(&sema->priority_sem[priority][position], sema->pshared, 0);
     pthread_mutex_unlock(&sema->semLock);
     sem_wait(&sema->priority_sem[priority][position]);
     sema->numWaiting--;
     sema->semval--;
-#ifdef SEMA_DEBUG
-    printf("sema_wait: got wait semval %d prio %d pos %d numwaiting %d %lu stat %d\n",
-           sema->semval, priority, position,
-           sema->numWaiting, pthread_self(),
-           sema->waiting_thread_status[priority][position]);
-#endif
+
+    sema_printf("sema_wait: got wait semval %d prio %d pos %d numwaiting %d %lu stat %d\n",
+                sema->semval, priority, position,
+                sema->numWaiting, pthread_self(),
+                sema->waiting_thread_status[priority][position]);
+
     sema->waiting_thread_status[priority][position] = 0;
     memset(&sema->waiting_thread[priority][position], 0, sizeof(pthread_t));
   }
@@ -341,27 +351,25 @@ void sema_post(sema_t *sema)
   {
     // Error? No waiting threads found
     sema->semval++;
-#ifdef SEMA_DEBUG
-    printf("sema_post: No waiting threads found. Semval %d. nm %d\n",
-           sema->semval, sema->numWaiting);
+
+    sema_printf("sema_post: No waiting threads found. Semval %d. nm %d\n",
+                sema->semval, sema->numWaiting);
     SemaPrintThreadIds(sema);
-#endif
+
     pthread_mutex_unlock(&sema->semLock);
     return;
   }
   else
   {
-#ifdef SEMA_DEBUG
-    printf("sema_post: Found waiting thread prio %d pos %d ", priority, position);
-#endif
+    sema_printf("sema_post: Found waiting thread prio %d pos %d ", priority, position);
   }
 
   sema->semval++;
   SemaUnsetWait(sema, priority, position);
-#ifdef SEMA_DEBUG
+
   SemaPrintThreadIds(sema);
   printf("sema_post: prepost semval %d numwaiting %d\n", sema->semval, sema->numWaiting);
-#endif
+
   sem_post(&sema->priority_sem[priority][position]);
   pthread_mutex_unlock(&sema->semLock);
 }

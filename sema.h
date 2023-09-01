@@ -1,6 +1,8 @@
 #ifndef _SEMA_H
 #define _SEMA_H
 
+#include <semaphore.h>
+
 //Priority semaphore threads
 #define SEMA_NUM_PRIORITIES 6 //MAX PRIORITY is 5
 #define SEMA_NUM_PER_PRIORITY 5
