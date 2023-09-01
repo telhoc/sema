@@ -229,6 +229,14 @@ int SemaGetPost(sema_t *sema, int *priority, int *position)
   return -1;
 }
 
+/**
+ * @brief Set the status of a specific priority and position to wait
+ * 
+ * @param sema 
+ * @param priority 
+ * @param position 
+ * @return int 
+ */
 int SemaSetWait(sema_t *sema, int priority, int position)
 {
 
@@ -240,6 +248,15 @@ int SemaSetWait(sema_t *sema, int priority, int position)
   return -1;
 }
 
+/**
+ * @brief Unset the status of a specific priority and position to wait
+ * 
+ * 
+ * @param sema 
+ * @param priority 
+ * @param position 
+ * @return int 
+ */
 int SemaUnsetWait(sema_t *sema, int priority, int position)
 {
 
