@@ -70,8 +70,6 @@ void sema_init(sema_t *sema, int pshared, unsigned int value)
 {
   int i, j;
 
-  sema_printf("Hello there! \n");
-
   for (i = 0; i < SEMA_NUM_PRIORITIES; i++)
   {
     sema->priority_rr_pos[i] = 0;
