@@ -17,6 +17,7 @@ void *test_thread1(void *data)
     {
         sema_wait(&sem_prio);
         printf("Hello from test thread 1\n");
+        usleep(1200000);
     }
 }
 
@@ -30,6 +31,7 @@ void *test_thread2(void *data)
     {
         sema_wait(&sem_prio);
         printf("Hello from test thread 2\n");
+        usleep(1500000);
     }
 }
 
@@ -51,7 +53,7 @@ void *thread_controller(void *data)
 
     while (1)
     {
-        usleep(1000000);
+        usleep(500000);
 
         // Notify highest waiting thread
         sema_post(&sem_prio);

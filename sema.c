@@ -16,7 +16,7 @@
 
 #include "sema.h"
 
-#define SEMA_DEBUG
+#define noSEMA_DEBUG
 
 void sema_printf(const char *format, ...)
 {
