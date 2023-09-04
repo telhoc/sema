@@ -4,13 +4,13 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 
-struct TwoIntegers
+struct SignalData
 {
     int a;
     int b;
 };
 
-struct TwoIntegers *shared_data;
+struct SignalData *shared_data;
 
 void signal_handler(int signo, siginfo_t *info, void *context)
 {
@@ -25,7 +25,7 @@ void signal_handler(int signo, siginfo_t *info, void *context)
     printf("Data: a=%d, b=%d\n", shared_data->a, shared_data->b);
 
     // Clean up shared memory
-    if (shm_unlink("/my_shm") == -1)
+    if (shm_unlink("/signal_shm") == -1)
     {
         perror("Failed to unlink shared memory");
         return;
@@ -34,15 +34,15 @@ void signal_handler(int signo, siginfo_t *info, void *context)
 
 int main()
 {
-    int fd = shm_open("/my_shm", O_CREAT | O_RDWR, 0666);
+    int fd = shm_open("/signal_shm", O_CREAT | O_RDWR, 0666);
     if (fd == -1)
     {
         perror("shm_open failed");
         return 1;
     }
 
-    ftruncate(fd, sizeof(struct TwoIntegers));
-    shared_data = mmap(NULL, sizeof(struct TwoIntegers), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    ftruncate(fd, sizeof(struct SignalData));
+    shared_data = mmap(NULL, sizeof(struct SignalData), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     if (shared_data == MAP_FAILED)
     {
         perror("mmap failed");

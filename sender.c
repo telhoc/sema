@@ -5,7 +5,7 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 
-struct TwoIntegers
+struct SignalData
 {
     int a;
     int b;
@@ -19,15 +19,15 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    int fd = shm_open("/my_shm", O_RDWR, 0666);
+    int fd = shm_open("/signal_shm", O_RDWR, 0666);
     if (fd == -1)
     {
         perror("shm_open failed");
         return 1;
     }
 
-    ftruncate(fd, sizeof(struct TwoIntegers));
-    struct TwoIntegers *shared_data = mmap(NULL, sizeof(struct TwoIntegers), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    ftruncate(fd, sizeof(struct SignalData));
+    struct SignalData *shared_data = mmap(NULL, sizeof(struct SignalData), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     if (shared_data == MAP_FAILED)
     {
         perror("mmap failed");
