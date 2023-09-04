@@ -4,6 +4,7 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 
+// Signal data sent via shared memory
 struct SignalData
 {
     int a;
@@ -34,6 +35,7 @@ void signal_handler(int signo, siginfo_t *info, void *context)
 
 int main()
 {
+    //Open shared memory to be used as part of signals data
     int fd = shm_open("/signal_shm", O_CREAT | O_RDWR, 0666);
     if (fd == -1)
     {

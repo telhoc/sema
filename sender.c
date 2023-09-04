@@ -5,6 +5,7 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 
+//Signal data sent via shared memory
 struct SignalData
 {
     int a;
@@ -19,6 +20,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    //Open shared memory to be used as part of signals data
     int fd = shm_open("/signal_shm", O_RDWR, 0666);
     if (fd == -1)
     {
@@ -26,6 +28,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    //Configure the shared memory to map to the signal data struct
     ftruncate(fd, sizeof(struct SignalData));
     struct SignalData *shared_data = mmap(NULL, sizeof(struct SignalData), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     if (shared_data == MAP_FAILED)
